@@ -1,0 +1,41 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# C extensions
+*.so
+
+# Virtual environment directories
+venv/
+.env/
+.venv/
+
+# Distribution / packaging
+*.egg-info/
+*.egg
+pip-wheel-metadata/
+
+# Django specific
+*.log
+local_settings.py
+settings_local.py
+
+# SQLite database (local dev only)
+db.sqlite3
+
+# Media uploads (generated at runtime)
+media/
+
+# Static files collected by collectstatic
+staticfiles/
+
+migrations/
+
+# IDE / editor configs
+.vscode/
+.idea/
+
+# OS generated files
+.DS_Store
+Thumbs.db

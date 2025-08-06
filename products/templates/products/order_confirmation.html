@@ -1,0 +1,218 @@
+{% extends 'base.html' %}
+
+{% block title %}Order Confirmation - E-commerce Store{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+        <!-- Success Message -->
+        <div class="text-center mb-5">
+            <div class="mb-4">
+                <i class="fas fa-check-circle fa-5x text-success"></i>
+            </div>
+            <h2 class="text-success mb-3">Order Placed Successfully!</h2>
+            <p class="lead text-muted">Thank you for your order. We'll send you a confirmation email shortly.</p>
+        </div>
+        
+        <!-- Order Details -->
+        <div class="card mb-4">
+            <div class="card-header bg-success text-white">
+                <h5 class="mb-0">
+                    <i class="fas fa-receipt"></i> Order Details
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <strong>Order Number:</strong><br>
+                        <span class="text-primary">{{ order.order_number }}</span>
+                    </div>
+                    <div class="col-md-6">
+                        <strong>Order Date:</strong><br>
+                        {{ order.created_at|date:"F d, Y g:i A" }}
+                    </div>
+                </div>
+                
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <strong>Status:</strong><br>
+                        <span class="badge bg-warning">{{ order.get_status_display }}</span>
+                    </div>
+                    <div class="col-md-6">
+                        <strong>Total Amount:</strong><br>
+                        <span class="text-success fw-bold fs-5">${{ order.total_amount }}</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Customer Information -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-user"></i> Customer Information
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <strong>Name:</strong><br>
+                        {{ order.get_full_name }}
+                    </div>
+                    <div class="col-md-6">
+                        <strong>Email:</strong><br>
+                        {{ order.email }}
+                    </div>
+                </div>
+                {% if order.phone %}
+                <div class="row mt-2">
+                    <div class="col-md-6">
+                        <strong>Phone:</strong><br>
+                        {{ order.phone }}
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+        
+        <!-- Shipping Address -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-shipping-fast"></i> Shipping Address
+                </h5>
+            </div>
+            <div class="card-body">
+                <address class="mb-0">
+                    {{ order.get_full_name }}<br>
+                    {{ order.address_line_1 }}<br>
+                    {% if order.address_line_2 %}
+                        {{ order.address_line_2 }}<br>
+                    {% endif %}
+                    {{ order.city }}, {{ order.state }} {{ order.postal_code }}<br>
+                    {{ order.country }}
+                </address>
+            </div>
+        </div>
+        
+        <!-- Order Items -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-box"></i> Order Items
+                </h5>
+            </div>
+            <div class="card-body">
+                {% for item in order.items.all %}
+                    <div class="row align-items-center mb-3 {% if not forloop.last %}border-bottom pb-3{% endif %}">
+                        <div class="col-md-2">
+                            {% if item.product.image %}
+                                <img src="{{ item.product.image.url }}" 
+                                     alt="{{ item.product.name }}" 
+                                     class="img-fluid rounded">
+                            {% else %}
+                                <div class="bg-light rounded d-flex align-items-center justify-content-center" 
+                                     style="height: 80px;">
+                                    <span class="text-muted">No Image</span>
+                                </div>
+                            {% endif %}
+                        </div>
+                        <div class="col-md-5">
+                            <h6 class="mb-1">{{ item.product.name }}</h6>
+                            <small class="text-muted">{{ item.product.category }}</small>
+                        </div>
+                        <div class="col-md-2 text-center">
+                            <strong>Qty: {{ item.quantity }}</strong>
+                        </div>
+                        <div class="col-md-2 text-center">
+                            <strong>${{ item.price }}</strong>
+                        </div>
+                        <div class="col-md-1 text-end">
+                            <strong>${{ item.get_total_price }}</strong>
+                        </div>
+                    </div>
+                {% endfor %}
+                
+                <!-- Order Total -->
+                <div class="row mt-3 pt-3 border-top">
+                    <div class="col-md-8"></div>
+                    <div class="col-md-4">
+                        <div class="d-flex justify-content-between mb-2">
+                            <span>Subtotal:</span>
+                            <span>${{ order.total_amount }}</span>
+                        </div>
+                        <div class="d-flex justify-content-between mb-2">
+                            <span>Shipping:</span>
+                            <span class="text-success">Free</span>
+                        </div>
+                        <div class="d-flex justify-content-between mb-2">
+                            <span>Tax:</span>
+                            <span>$0.00</span>
+                        </div>
+                        <hr>
+                        <div class="d-flex justify-content-between">
+                            <strong>Total:</strong>
+                            <strong class="text-success">${{ order.total_amount }}</strong>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Next Steps -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-info-circle"></i> What's Next?
+                </h5>
+            </div>
+            <div class="card-body">
+                <ul class="list-unstyled mb-0">
+                    <li class="mb-2">
+                        <i class="fas fa-envelope text-primary me-2"></i>
+                        You'll receive an order confirmation email at <strong>{{ order.email }}</strong>
+                    </li>
+                    <li class="mb-2">
+                        <i class="fas fa-truck text-primary me-2"></i>
+                        We'll notify you when your order ships
+                    </li>
+                    <li class="mb-2">
+                        <i class="fas fa-history text-primary me-2"></i>
+                        You can track your order status in your <a href="{% url 'products:order_history' %}">order history</a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+        
+        <!-- Action Buttons -->
+        <div class="text-center mb-5">
+            <a href="{% url 'products:product_list' %}" class="btn btn-primary btn-lg me-3">
+                <i class="fas fa-shopping-bag"></i> Continue Shopping
+            </a>
+            <a href="{% url 'products:order_history' %}" class="btn btn-outline-secondary btn-lg">
+                <i class="fas fa-list"></i> View Order History
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+    .card {
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    .fa-check-circle {
+        animation: pulse 2s infinite;
+    }
+    @keyframes pulse {
+        0% { transform: scale(1); }
+        50% { transform: scale(1.05); }
+        100% { transform: scale(1); }
+    }
+    address {
+        font-style: normal;
+        line-height: 1.6;
+    }
+</style>
+{% endblock %}

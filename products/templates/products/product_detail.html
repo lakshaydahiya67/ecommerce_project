@@ -1,0 +1,669 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ product.name }} - E-commerce Store{% endblock %}
+
+{% block content %}
+<div class="row">
+    <!-- Product Details -->
+    <div class="col-lg-8">
+        <div class="card">
+            <div class="card-body">
+                <!-- Breadcrumb Navigation -->
+                <nav aria-label="breadcrumb" class="mb-4">
+                    <ol class="breadcrumb">
+                        <li class="breadcrumb-item">
+                            <a href="{% url 'products:product_list' %}">All Products</a>
+                        </li>
+                        <li class="breadcrumb-item">
+                            <a href="{% url 'products:product_list_by_category' category=product.category %}">
+                                {{ product.category }}
+                            </a>
+                        </li>
+                        <li class="breadcrumb-item active" aria-current="page">{{ product.name }}</li>
+                    </ol>
+                </nav>
+
+                <div class="row">
+                    <!-- Product Image -->
+                    <div class="col-md-6">
+                        {% if product.image %}
+                            <img src="{{ product.image.url }}" 
+                                 class="img-fluid rounded" 
+                                 alt="{{ product.name }}"
+                                 style="width: 100%; max-height: 400px; object-fit: cover;">
+                        {% else %}
+                            <div class="bg-light rounded d-flex align-items-center justify-content-center" 
+                                 style="height: 400px;">
+                                <span class="text-muted fs-4">No Image Available</span>
+                            </div>
+                        {% endif %}
+                    </div>
+
+                    <!-- Product Information -->
+                    <div class="col-md-6">
+                        <!-- Category Badge -->
+                        <span class="badge bg-secondary mb-3">{{ product.category }}</span>
+                        
+                        <!-- Product Name -->
+                        <h1 class="h2 mb-3">{{ product.name }}</h1>
+                        
+                        <!-- Price -->
+                        <h3 class="text-primary mb-4">${{ product.price }}</h3>
+                        
+                        <!-- Product Description -->
+                        <div class="mb-4">
+                            <h5>Description</h5>
+                            <p class="text-muted">{{ product.description }}</p>
+                        </div>
+                        
+                        <!-- Product Meta Information -->
+                        <div class="mb-4">
+                            <small class="text-muted">
+                                <strong>Added:</strong> {{ product.created_at|date:"F d, Y" }}<br>
+                                {% if product.updated_at != product.created_at %}
+                                    <strong>Updated:</strong> {{ product.updated_at|date:"F d, Y" }}
+                                {% endif %}
+                            </small>
+                        </div>
+                        
+                        <!-- Action Buttons -->
+                        {% if user.is_authenticated %}
+                            <form method="post" action="{% url 'products:add_to_cart' product.id %}" class="mb-3">
+                                {% csrf_token %}
+                                <div class="row mb-3">
+                                    <div class="col-4">
+                                        <label for="quantity" class="form-label">Quantity:</label>
+                                        <input type="number" 
+                                               id="quantity" 
+                                               name="quantity" 
+                                               value="1" 
+                                               min="1" 
+                                               max="99" 
+                                               class="form-control">
+                                    </div>
+                                </div>
+                                <div class="d-grid gap-2">
+                                    <button type="submit" class="btn btn-primary btn-lg">
+                                        <i class="fas fa-shopping-cart"></i> Add to Cart
+                                    </button>
+                                    <input type="hidden" name="next" value="product">
+                                </div>
+                            </form>
+                            
+                            <!-- Like/Dislike Buttons -->
+                            <div class="row mb-3">
+                                <div class="col-6">
+                                    <button id="like-btn" class="btn btn-outline-success w-100" 
+                                            data-product-id="{{ product.id }}" 
+                                            data-interaction="like">
+                                        <i class="fas fa-thumbs-up"></i> 
+                                        <span id="like-text">Like</span>
+                                        <span id="like-count" class="badge bg-success ms-1">0</span>
+                                    </button>
+                                </div>
+                                <div class="col-6">
+                                    <button id="dislike-btn" class="btn btn-outline-danger w-100" 
+                                            data-product-id="{{ product.id }}" 
+                                            data-interaction="dislike">
+                                        <i class="fas fa-thumbs-down"></i> 
+                                        <span id="dislike-text">Dislike</span>
+                                        <span id="dislike-count" class="badge bg-danger ms-1">0</span>
+                                    </button>
+                                </div>
+                            </div>
+                            
+                            <div class="d-grid">
+                                <button class="btn btn-outline-secondary" type="button">
+                                    <i class="fas fa-heart"></i> Add to Wishlist
+                                </button>
+                            </div>
+                        {% else %}
+                            <div class="alert alert-info">
+                                <a href="/admin/login/" class="btn btn-primary">Login</a> to add items to cart
+                            </div>
+                        {% endif %}
+                        
+                        <!-- User Interaction Info (for authenticated users) -->
+                        {% if user.is_authenticated and user_interactions %}
+                            <div class="mt-4">
+                                <small class="text-muted">
+                                    <strong>Your interactions:</strong>
+                                    {% for interaction in user_interactions %}
+                                        <span class="badge bg-info me-1">{{ interaction.get_interaction_type_display }}</span>
+                                    {% endfor %}
+                                </small>
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Sidebar with Related Products -->
+    <div class="col-lg-4">
+        <!-- Related Products -->
+        {% if related_products %}
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Related Products</h5>
+                    <small class="text-muted">More from {{ product.category }}</small>
+                </div>
+                <div class="card-body">
+                    {% for related_product in related_products %}
+                        <div class="d-flex mb-3 {% if not forloop.last %}border-bottom pb-3{% endif %}">
+                            <!-- Related Product Image -->
+                            <div class="flex-shrink-0 me-3">
+                                {% if related_product.image %}
+                                    <img src="{{ related_product.image.url }}" 
+                                         class="rounded" 
+                                         alt="{{ related_product.name }}"
+                                         style="width: 60px; height: 60px; object-fit: cover;">
+                                {% else %}
+                                    <div class="bg-light rounded d-flex align-items-center justify-content-center" 
+                                         style="width: 60px; height: 60px;">
+                                        <small class="text-muted">No img</small>
+                                    </div>
+                                {% endif %}
+                            </div>
+                            
+                            <!-- Related Product Info -->
+                            <div class="flex-grow-1">
+                                <h6 class="mb-1">
+                                    <a href="{% url 'products:product_detail' pk=related_product.pk %}" 
+                                       class="text-decoration-none">
+                                        {{ related_product.name }}
+                                    </a>
+                                </h6>
+                                <p class="text-muted small mb-1">
+                                    {% if related_product.description|length > 50 %}
+                                        {{ related_product.description|slice:":50" }}...
+                                    {% else %}
+                                        {{ related_product.description }}
+                                    {% endif %}
+                                </p>
+                                <strong class="text-primary">${{ related_product.price }}</strong>
+                            </div>
+                        </div>
+                    {% endfor %}
+                    
+                    <!-- View More Link -->
+                    <div class="text-center mt-3">
+                        <a href="{% url 'products:product_list_by_category' category=product.category %}" 
+                           class="btn btn-outline-primary btn-sm">
+                            View All {{ product.category }} Products
+                        </a>
+                    </div>
+                </div>
+            </div>
+        {% endif %}
+
+        <!-- AI Recommendations -->
+        <div class="card mt-3">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">
+                    <i class="fas fa-robot"></i> AI Recommendations
+                </h5>
+                <button id="refresh-recommendations" class="btn btn-sm btn-outline-primary" title="Refresh recommendations">
+                    <i class="fas fa-sync-alt"></i>
+                </button>
+            </div>
+            <div class="card-body">
+                <!-- Loading indicator -->
+                <div id="recommendations-loading" class="text-center py-3">
+                    <div class="spinner-border spinner-border-sm text-primary" role="status">
+                        <span class="visually-hidden">Loading recommendations...</span>
+                    </div>
+                    <p class="mt-2 mb-0 text-muted">Finding personalized recommendations...</p>
+                </div>
+                
+                <!-- Recommendations container -->
+                <div id="recommendations-container" style="display: none;">
+                    <!-- Recommendations will be loaded here via AJAX -->
+                </div>
+                
+                <!-- Error message -->
+                <div id="recommendations-error" class="alert alert-warning" style="display: none;">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    Unable to load recommendations at this time.
+                    <button id="retry-recommendations" class="btn btn-sm btn-outline-warning ms-2">
+                        Try Again
+                    </button>
+                </div>
+                
+                <!-- No recommendations message -->
+                <div id="no-recommendations" class="text-center py-3" style="display: none;">
+                    <i class="fas fa-search text-muted mb-2" style="font-size: 2rem;"></i>
+                    <p class="text-muted mb-0">No recommendations available yet.</p>
+                    <small class="text-muted">Try browsing more products to get personalized suggestions!</small>
+                </div>
+            </div>
+        </div>
+
+        <!-- Back to Products -->
+        <div class="card mt-3">
+            <div class="card-body text-center">
+                <a href="{% url 'products:product_list' %}" class="btn btn-secondary">
+                    ← Back to All Products
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Additional Product Information (if needed) -->
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">Additional Information</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <h6>Product Details</h6>
+                        <ul class="list-unstyled">
+                            <li><strong>Category:</strong> {{ product.category }}</li>
+                            <li><strong>Price:</strong> ${{ product.price }}</li>
+                            <li><strong>Added:</strong> {{ product.created_at|date:"F d, Y" }}</li>
+                        </ul>
+                    </div>
+                    <div class="col-md-6">
+                        <h6>Description</h6>
+                        <p class="text-muted">{{ product.description }}</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('Product detail page loaded for: {{ product.name }}');
+    
+    // Initialize like/dislike button states and counts
+    initializeInteractionButtons();
+    
+    // Initialize recommendations
+    loadRecommendations();
+    
+    // Add event listeners for like/dislike buttons
+    const likeBtn = document.getElementById('like-btn');
+    const dislikeBtn = document.getElementById('dislike-btn');
+    
+    if (likeBtn) {
+        likeBtn.addEventListener('click', function() {
+            handleInteraction('like');
+        });
+    }
+    
+    if (dislikeBtn) {
+        dislikeBtn.addEventListener('click', function() {
+            handleInteraction('dislike');
+        });
+    }
+    
+    // Add event listeners for recommendation controls
+    const refreshBtn = document.getElementById('refresh-recommendations');
+    const retryBtn = document.getElementById('retry-recommendations');
+    
+    if (refreshBtn) {
+        refreshBtn.addEventListener('click', function() {
+            loadRecommendations(true);
+        });
+    }
+    
+    if (retryBtn) {
+        retryBtn.addEventListener('click', function() {
+            loadRecommendations();
+        });
+    }
+    
+    function initializeInteractionButtons() {
+        // Get current interaction counts and user state
+        updateInteractionCounts();
+    }
+    
+    function updateInteractionCounts() {
+        // Get current like/dislike counts for this product
+        const productId = {{ product.id }};
+        
+        // For now, initialize with 0 - this will be updated when user interacts
+        document.getElementById('like-count').textContent = '0';
+        document.getElementById('dislike-count').textContent = '0';
+        
+        // Check if user has existing interactions (from template context)
+        {% if user.is_authenticated and user_interactions %}
+            {% for interaction in user_interactions %}
+                {% if interaction.interaction_type == 'like' %}
+                    updateButtonState('like', true);
+                {% elif interaction.interaction_type == 'dislike' %}
+                    updateButtonState('dislike', true);
+                {% endif %}
+            {% endfor %}
+        {% endif %}
+    }
+    
+    function handleInteraction(interactionType) {
+        const productId = {{ product.id }};
+        const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+        
+        // Disable buttons during request
+        document.getElementById('like-btn').disabled = true;
+        document.getElementById('dislike-btn').disabled = true;
+        
+        fetch(`/product/${productId}/interact/`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': csrfToken,
+                'X-Requested-With': 'XMLHttpRequest'
+            },
+            body: JSON.stringify({
+                'interaction_type': interactionType
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                // Update button states and counts
+                updateButtonState('like', data.user_liked);
+                updateButtonState('dislike', data.user_disliked);
+                
+                document.getElementById('like-count').textContent = data.like_count;
+                document.getElementById('dislike-count').textContent = data.dislike_count;
+                
+                // Show success message
+                showMessage(data.message, 'success');
+                
+                // Refresh recommendations after user interaction
+                setTimeout(() => {
+                    loadRecommendations(true);
+                }, 500);
+            } else {
+                showMessage(data.error || 'An error occurred', 'error');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            showMessage('Network error occurred', 'error');
+        })
+        .finally(() => {
+            // Re-enable buttons
+            document.getElementById('like-btn').disabled = false;
+            document.getElementById('dislike-btn').disabled = false;
+        });
+    }
+    
+    function updateButtonState(interactionType, isActive) {
+        const btn = document.getElementById(`${interactionType}-btn`);
+        const text = document.getElementById(`${interactionType}-text`);
+        
+        if (isActive) {
+            btn.classList.remove(`btn-outline-${interactionType === 'like' ? 'success' : 'danger'}`);
+            btn.classList.add(`btn-${interactionType === 'like' ? 'success' : 'danger'}`);
+            text.textContent = interactionType === 'like' ? 'Liked' : 'Disliked';
+        } else {
+            btn.classList.remove(`btn-${interactionType === 'like' ? 'success' : 'danger'}`);
+            btn.classList.add(`btn-outline-${interactionType === 'like' ? 'success' : 'danger'}`);
+            text.textContent = interactionType === 'like' ? 'Like' : 'Dislike';
+        }
+    }
+    
+    function showMessage(message, type) {
+        // Create a simple alert message
+        const alertClass = type === 'success' ? 'alert-success' : 'alert-danger';
+        const alertHtml = `
+            <div class="alert ${alertClass} alert-dismissible fade show mt-3" role="alert">
+                ${message}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+        `;
+        
+        // Insert the alert at the top of the product details
+        const productDetails = document.querySelector('.col-lg-8 .card-body');
+        productDetails.insertAdjacentHTML('afterbegin', alertHtml);
+        
+        // Auto-dismiss after 3 seconds
+        setTimeout(() => {
+            const alert = productDetails.querySelector('.alert');
+            if (alert) {
+                alert.remove();
+            }
+        }, 3000);
+    }
+    
+    function loadRecommendations(isRefresh = false) {
+        const productId = {{ product.id }};
+        const loadingEl = document.getElementById('recommendations-loading');
+        const containerEl = document.getElementById('recommendations-container');
+        const errorEl = document.getElementById('recommendations-error');
+        const noRecsEl = document.getElementById('no-recommendations');
+        const refreshBtn = document.getElementById('refresh-recommendations');
+        
+        // Show loading state
+        loadingEl.style.display = 'block';
+        containerEl.style.display = 'none';
+        errorEl.style.display = 'none';
+        noRecsEl.style.display = 'none';
+        
+        // Disable refresh button during loading
+        if (refreshBtn) {
+            refreshBtn.disabled = true;
+            const icon = refreshBtn.querySelector('i');
+            if (icon) {
+                icon.classList.add('fa-spin');
+            }
+        }
+        
+        // Add a small delay for better UX if it's a refresh
+        const delay = isRefresh ? 300 : 0;
+        
+        setTimeout(() => {
+            fetch(`/api/recommendations/${productId}/?num_recommendations=4`)
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    if (data.success && data.recommendations && data.recommendations.length > 0) {
+                        displayRecommendations(data.recommendations);
+                        containerEl.style.display = 'block';
+                    } else {
+                        noRecsEl.style.display = 'block';
+                    }
+                })
+                .catch(error => {
+                    console.error('Error loading recommendations:', error);
+                    errorEl.style.display = 'block';
+                })
+                .finally(() => {
+                    loadingEl.style.display = 'none';
+                    
+                    // Re-enable refresh button
+                    if (refreshBtn) {
+                        refreshBtn.disabled = false;
+                        const icon = refreshBtn.querySelector('i');
+                        if (icon) {
+                            icon.classList.remove('fa-spin');
+                        }
+                    }
+                });
+        }, delay);
+    }
+    
+    function displayRecommendations(recommendations) {
+        const container = document.getElementById('recommendations-container');
+        
+        let html = '';
+        
+        recommendations.forEach((rec, index) => {
+            const imageHtml = rec.image_url 
+                ? `<img src="${rec.image_url}" class="rounded" alt="${rec.name}" style="width: 60px; height: 60px; object-fit: cover;">`
+                : `<div class="bg-light rounded d-flex align-items-center justify-content-center" style="width: 60px; height: 60px;">
+                     <small class="text-muted">No img</small>
+                   </div>`;
+            
+            // Create score badge based on final score
+            const scoreColor = rec.final_score > 0.7 ? 'success' : rec.final_score > 0.4 ? 'warning' : 'secondary';
+            const scorePercentage = Math.round(rec.final_score * 100);
+            
+            html += `
+                <div class="d-flex mb-3 recommendation-item ${index < recommendations.length - 1 ? 'border-bottom pb-3' : ''}" 
+                     data-product-id="${rec.product_id}">
+                    <!-- Recommendation Image -->
+                    <div class="flex-shrink-0 me-3">
+                        ${imageHtml}
+                    </div>
+                    
+                    <!-- Recommendation Info -->
+                    <div class="flex-grow-1">
+                        <div class="d-flex justify-content-between align-items-start mb-1">
+                            <h6 class="mb-1">
+                                <a href="${rec.detail_url}" class="text-decoration-none recommendation-link">
+                                    ${rec.name}
+                                </a>
+                            </h6>
+                            <span class="badge bg-${scoreColor} ms-2" title="Recommendation Score">
+                                ${scorePercentage}%
+                            </span>
+                        </div>
+                        
+                        <p class="text-muted small mb-1">
+                            <span class="badge bg-light text-dark me-1">${rec.category}</span>
+                            ${rec.reason}
+                        </p>
+                        
+                        <div class="d-flex justify-content-between align-items-center">
+                            <strong class="text-primary">$${rec.price}</strong>
+                            <div class="btn-group btn-group-sm" role="group">
+                                <button type="button" class="btn btn-outline-success btn-sm like-rec-btn" 
+                                        data-product-id="${rec.product_id}" title="Like this recommendation">
+                                    <i class="fas fa-thumbs-up"></i>
+                                </button>
+                                <button type="button" class="btn btn-outline-danger btn-sm dislike-rec-btn" 
+                                        data-product-id="${rec.product_id}" title="Dislike this recommendation">
+                                    <i class="fas fa-thumbs-down"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        });
+        
+        container.innerHTML = html;
+        
+        // Add event listeners for recommendation feedback buttons
+        addRecommendationFeedbackListeners();
+    }
+    
+    function addRecommendationFeedbackListeners() {
+        const likeButtons = document.querySelectorAll('.like-rec-btn');
+        const dislikeButtons = document.querySelectorAll('.dislike-rec-btn');
+        
+        likeButtons.forEach(btn => {
+            btn.addEventListener('click', function() {
+                const productId = this.getAttribute('data-product-id');
+                handleRecommendationFeedback(productId, 'like', this);
+            });
+        });
+        
+        dislikeButtons.forEach(btn => {
+            btn.addEventListener('click', function() {
+                const productId = this.getAttribute('data-product-id');
+                handleRecommendationFeedback(productId, 'dislike', this);
+            });
+        });
+    }
+    
+    function handleRecommendationFeedback(productId, interactionType, buttonEl) {
+        const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+        
+        // Disable button during request
+        buttonEl.disabled = true;
+        const icon = buttonEl.querySelector('i');
+        const originalClass = icon.className;
+        icon.className = 'fas fa-spinner fa-spin';
+        
+        fetch(`/product/${productId}/interact/`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': csrfToken,
+                'X-Requested-With': 'XMLHttpRequest'
+            },
+            body: JSON.stringify({
+                'interaction_type': interactionType
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                // Update button state
+                const isActive = data[`user_${interactionType}d`];
+                if (isActive) {
+                    buttonEl.classList.remove('btn-outline-success', 'btn-outline-danger');
+                    buttonEl.classList.add(interactionType === 'like' ? 'btn-success' : 'btn-danger');
+                } else {
+                    buttonEl.classList.remove('btn-success', 'btn-danger');
+                    buttonEl.classList.add(interactionType === 'like' ? 'btn-outline-success' : 'btn-outline-danger');
+                }
+                
+                // Show small success indicator
+                showRecommendationFeedback(buttonEl, 'Thanks for your feedback!', 'success');
+                
+                // Update opposite button state
+                const oppositeType = interactionType === 'like' ? 'dislike' : 'like';
+                const oppositeBtn = buttonEl.parentElement.querySelector(`.${oppositeType}-rec-btn`);
+                if (oppositeBtn) {
+                    const oppositeActive = data[`user_${oppositeType}d`];
+                    if (oppositeActive) {
+                        oppositeBtn.classList.remove('btn-outline-success', 'btn-outline-danger');
+                        oppositeBtn.classList.add(oppositeType === 'like' ? 'btn-success' : 'btn-danger');
+                    } else {
+                        oppositeBtn.classList.remove('btn-success', 'btn-danger');
+                        oppositeBtn.classList.add(oppositeType === 'like' ? 'btn-outline-success' : 'btn-outline-danger');
+                    }
+                }
+            } else {
+                showRecommendationFeedback(buttonEl, 'Error occurred', 'error');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            showRecommendationFeedback(buttonEl, 'Network error', 'error');
+        })
+        .finally(() => {
+            // Re-enable button and restore icon
+            buttonEl.disabled = false;
+            icon.className = originalClass;
+        });
+    }
+    
+    function showRecommendationFeedback(buttonEl, message, type) {
+        // Create a small tooltip-like feedback
+        const feedback = document.createElement('div');
+        feedback.className = `position-absolute bg-${type === 'success' ? 'success' : 'danger'} text-white px-2 py-1 rounded small`;
+        feedback.style.cssText = 'top: -35px; left: 50%; transform: translateX(-50%); z-index: 1000; font-size: 0.75rem;';
+        feedback.textContent = message;
+        
+        // Position relative to button
+        buttonEl.style.position = 'relative';
+        buttonEl.appendChild(feedback);
+        
+        // Remove after 2 seconds
+        setTimeout(() => {
+            if (feedback.parentNode) {
+                feedback.parentNode.removeChild(feedback);
+            }
+        }, 2000);
+    }
+});
+</script>
+{% endblock %}
