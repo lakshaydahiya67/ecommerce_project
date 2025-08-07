@@ -44,12 +44,17 @@ A simple Django-based e-commerce web application featuring product recommendatio
    python manage.py create_sample_products
    ```
 
-6. **Run the development server**
+6. **Create a superuser** (for and cart and like/dislike functionality and admin access)
+   ```bash
+   python manage.py createsuperuser
+   ```
+
+7. **Run the development server**
    ```bash
    python manage.py runserver
    ```
 
-7. **Open your browser and visit**: http://127.0.0.1:8000/
+8. **Open your browser and visit**: http://127.0.0.1:8000/
 
 ## How to Use
 
