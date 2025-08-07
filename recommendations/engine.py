@@ -183,10 +183,7 @@ class SimpleRecommendationEngine:
                 'price': float(product_info['price']),
                 'category': product_info['category'],
                 'similarity_score': float(similarity_score),
-                'final_score': float(final_score),
-                'detail_url': f'/product/{int(product_info["id"])}/',
-                'image_url': f'/media/products/product_{int(product_info["id"])}.jpg' if hasattr(product_info, 'image') else None,
-                'reason': f'Similar {product_info["category"].lower()} product'
+                'final_score': float(final_score)
             })
         
         # If we don't have enough recommendations, add fallback products
@@ -253,10 +250,7 @@ class SimpleRecommendationEngine:
                 'price': float(product['price']),
                 'category': product['category'],
                 'similarity_score': 0.0,
-                'final_score': 0.1,  # Low fallback score
-                'detail_url': f'/product/{int(product["id"])}/',
-                'image_url': f'/media/products/product_{int(product["id"])}.jpg' if hasattr(product, 'image') else None,
-                'reason': f'Popular {product["category"].lower()} product'
+                'final_score': 0.1  # Low fallback score
             })
         
         return recommendations

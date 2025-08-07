@@ -106,7 +106,11 @@
                                 </div>
                             </div>
                             
-                            
+                            <div class="d-grid">
+                                <button class="btn btn-outline-secondary" type="button">
+                                    <i class="fas fa-heart"></i> Add to Wishlist
+                                </button>
+                            </div>
                         {% else %}
                             <div class="alert alert-info">
                                 <a href="/admin/login/" class="btn btn-primary">Login</a> to add items to cart
@@ -371,7 +375,7 @@ document.addEventListener('DOMContentLoaded', function() {
         error.style.display = 'none';
         noRecs.style.display = 'none';
         
-        fetch(`/recommendations/api/recommendations/${productId}/?num_recommendations=4`)
+        fetch(`/api/recommendations/${productId}/?num_recommendations=4`)
             .then(response => response.json())
             .then(data => {
                 if (data.recommendations && data.recommendations.length > 0) {
