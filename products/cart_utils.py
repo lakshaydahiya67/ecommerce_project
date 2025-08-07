@@ -118,7 +118,8 @@ def get_cart_items(request):
     cart_items = []
     cart_total = 0
     
-    for product_id, quantity in cart.items():
+    # Iterate over a static list to avoid RuntimeError if cart is modified
+    for product_id, quantity in list(cart.items()):
         try:
             product = Product.objects.get(id=product_id)
             item_total = product.price * quantity
@@ -130,7 +131,7 @@ def get_cart_items(request):
             cart_total += item_total
         except Product.DoesNotExist:
             # Remove invalid product from cart
-            del cart[product_id]
+            cart.pop(product_id, None)
             request.session['cart'] = cart
     
     return {

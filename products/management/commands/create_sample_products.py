@@ -44,6 +44,25 @@ class Command(BaseCommand):
                 'price': Decimal('149.99'),
                 'category': 'Electronics'
             },     
+            # Electronics cluster (similar products, different prices)
+            {
+                'name': 'Bluetooth Speaker',
+                'description': 'Portable Bluetooth speaker with deep bass and 12-hour battery.',
+                'price': Decimal('49.99'),
+                'category': 'Electronics'
+            },
+            {
+                'name': 'Bluetooth Speaker',
+                'description': 'Premium Bluetooth speaker with waterproof design and 24-hour battery.',
+                'price': Decimal('99.99'),
+                'category': 'Electronics'
+            },
+            {
+                'name': 'Wireless Earbuds Pro',
+                'description': 'Noise-cancelling wireless earbuds with wireless charging case.',
+                'price': Decimal('149.99'),
+                'category': 'Electronics'
+            },
        # Clothing
             {
                 'name': 'Classic Denim Jacket',

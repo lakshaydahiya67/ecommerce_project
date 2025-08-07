@@ -269,10 +269,11 @@
 {% endblock %}
 
 {% block extra_js %}
+{{ product.id|json_script:"product-id" }}
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     // Simplified JavaScript for beginner-level implementation
-    const productId = {{ product.id }};
+    const productId = JSON.parse(document.getElementById('product-id').textContent);
     
     // Initialize like/dislike buttons
     const likeBtn = document.getElementById('like-btn');

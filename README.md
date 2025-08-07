@@ -139,10 +139,6 @@ python manage.py test
 # Test specific components
 python manage.py test products
 python manage.py test recommendations
-
-# Test Cython integration
-cd recommendations
-python test_cython_integration.py
 ```
 
 ## Troubleshooting
