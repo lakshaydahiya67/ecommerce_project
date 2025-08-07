@@ -9,16 +9,16 @@
         
         <div class="row">
             <div class="col-lg-8">
-                <!-- Checkout Form -->
+                <!-- Simple Checkout Form -->
                 <div class="card">
                     <div class="card-header">
-                        <h5 class="mb-0">Shipping Information</h5>
+                        <h5 class="mb-0">Order Information</h5>
                     </div>
                     <div class="card-body">
                         <form method="post" id="checkout-form">
                             {% csrf_token %}
                             
-                            <!-- Customer Information -->
+                            <!-- Basic Customer Information -->
                             <div class="row mb-3">
                                 <div class="col-md-6">
                                     <label for="first_name" class="form-label">First Name *</label>
@@ -26,7 +26,6 @@
                                            class="form-control" 
                                            id="first_name" 
                                            name="first_name" 
-                                           value="{{ initial_data.first_name }}"
                                            required>
                                 </div>
                                 <div class="col-md-6">
@@ -35,97 +34,33 @@
                                            class="form-control" 
                                            id="last_name" 
                                            name="last_name" 
-                                           value="{{ initial_data.last_name }}"
                                            required>
                                 </div>
                             </div>
-                            
-                            <div class="row mb-3">
-                                <div class="col-md-6">
-                                    <label for="email" class="form-label">Email Address *</label>
-                                    <input type="email" 
-                                           class="form-control" 
-                                           id="email" 
-                                           name="email" 
-                                           value="{{ initial_data.email }}"
-                                           required>
-                                </div>
-                                <div class="col-md-6">
-                                    <label for="phone" class="form-label">Phone Number</label>
-                                    <input type="tel" 
-                                           class="form-control" 
-                                           id="phone" 
-                                           name="phone" 
-                                           placeholder="(555) 123-4567">
-                                </div>
-                            </div>
-                            
-                            <!-- Shipping Address -->
-                            <h6 class="mt-4 mb-3">Shipping Address</h6>
                             
                             <div class="mb-3">
-                                <label for="address_line_1" class="form-label">Street Address *</label>
-                                <input type="text" 
+                                <label for="email" class="form-label">Email Address *</label>
+                                <input type="email" 
                                        class="form-control" 
-                                       id="address_line_1" 
-                                       name="address_line_1" 
-                                       placeholder="123 Main Street"
+                                       id="email" 
+                                       name="email" 
                                        required>
                             </div>
                             
                             <div class="mb-3">
-                                <label for="address_line_2" class="form-label">Apartment, Suite, etc.</label>
-                                <input type="text" 
-                                       class="form-control" 
-                                       id="address_line_2" 
-                                       name="address_line_2" 
-                                       placeholder="Apt 4B">
+                                <label for="address" class="form-label">Address *</label>
+                                <textarea class="form-control" 
+                                          id="address" 
+                                          name="address" 
+                                          rows="3" 
+                                          placeholder="Enter your full address"
+                                          required></textarea>
                             </div>
                             
-                            <div class="row mb-3">
-                                <div class="col-md-6">
-                                    <label for="city" class="form-label">City *</label>
-                                    <input type="text" 
-                                           class="form-control" 
-                                           id="city" 
-                                           name="city" 
-                                           required>
-                                </div>
-                                <div class="col-md-3">
-                                    <label for="state" class="form-label">State *</label>
-                                    <input type="text" 
-                                           class="form-control" 
-                                           id="state" 
-                                           name="state" 
-                                           placeholder="CA"
-                                           required>
-                                </div>
-                                <div class="col-md-3">
-                                    <label for="postal_code" class="form-label">ZIP Code *</label>
-                                    <input type="text" 
-                                           class="form-control" 
-                                           id="postal_code" 
-                                           name="postal_code" 
-                                           placeholder="12345"
-                                           required>
-                                </div>
-                            </div>
-                            
-                            <div class="mb-3">
-                                <label for="country" class="form-label">Country</label>
-                                <select class="form-select" id="country" name="country">
-                                    <option value="United States" selected>United States</option>
-                                    <option value="Canada">Canada</option>
-                                    <option value="United Kingdom">United Kingdom</option>
-                                    <option value="Australia">Australia</option>
-                                </select>
-                            </div>
-                            
-                            <!-- Payment Information Note -->
+                            <!-- Demo Notice -->
                             <div class="alert alert-info mt-4">
-                                <h6 class="alert-heading">Payment Information</h6>
-                                <p class="mb-0">This is a demo application. No actual payment will be processed. 
-                                Your order will be created for demonstration purposes only.</p>
+                                <h6 class="alert-heading">Demo Application</h6>
+                                <p class="mb-0">This is a demonstration. No actual payment will be processed and no real order will be shipped.</p>
                             </div>
                             
                             <div class="d-flex justify-content-between mt-4">
@@ -133,7 +68,7 @@
                                     <i class="fas fa-arrow-left"></i> Back to Cart
                                 </a>
                                 <button type="submit" class="btn btn-success btn-lg">
-                                    <i class="fas fa-credit-card"></i> Place Order
+                                    <i class="fas fa-check"></i> Place Order
                                 </button>
                             </div>
                         </form>
@@ -204,51 +139,21 @@
 </div>
 {% endblock %}
 
-{% block extra_css %}
-<style>
-    .card {
-        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-    }
-    .form-control:focus, .form-select:focus {
-        border-color: #28a745;
-        box-shadow: 0 0 0 0.2rem rgba(40, 167, 69, 0.25);
-    }
-    .alert-info {
-        background-color: #e7f3ff;
-        border-color: #b3d7ff;
-        color: #004085;
-    }
-</style>
-{% endblock %}
 
 {% block extra_js %}
 <script>
-    // Form validation
+    // Basic form validation - beginner level
     document.getElementById('checkout-form').addEventListener('submit', function(e) {
-        const requiredFields = ['first_name', 'last_name', 'email', 'address_line_1', 'city', 'state', 'postal_code'];
-        let isValid = true;
+        const requiredFields = ['first_name', 'last_name', 'email', 'address'];
         
-        requiredFields.forEach(function(fieldName) {
+        for (let fieldName of requiredFields) {
             const field = document.getElementById(fieldName);
             if (!field.value.trim()) {
-                field.classList.add('is-invalid');
-                isValid = false;
-            } else {
-                field.classList.remove('is-invalid');
+                alert('Please fill in all required fields.');
+                e.preventDefault();
+                return;
             }
-        });
-        
-        if (!isValid) {
-            e.preventDefault();
-            alert('Please fill in all required fields.');
         }
-    });
-    
-    // Remove invalid class on input
-    document.querySelectorAll('.form-control, .form-select').forEach(function(field) {
-        field.addEventListener('input', function() {
-            this.classList.remove('is-invalid');
-        });
     });
 </script>
 {% endblock %}

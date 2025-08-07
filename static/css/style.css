@@ -1,0 +1,17 @@
+/* Essential styles for beginner e-commerce project */
+
+/* Product images consistent sizing */
+.product-image {
+    height: 200px;
+    object-fit: cover;
+}
+
+/* Simple card styling - no animations for beginner simplicity */
+.product-card, .card {
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+/* Category badge styling */
+.category-badge {
+    font-size: 0.8rem;
+}

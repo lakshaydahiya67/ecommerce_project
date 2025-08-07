@@ -1,17 +1,10 @@
-from django.db.models import Sum
-from .models import CartItem
+from .cart_utils import get_cart_count
 
 
 def cart_context(request):
     """
-    Context processor to add cart information to all templates.
+    Context processor to add session-based cart information to all templates.
     """
-    cart_count = 0
-    if request.user.is_authenticated:
-        cart_count = CartItem.objects.filter(user=request.user).aggregate(
-            total=Sum('quantity')
-        )['total'] or 0
-    
     return {
-        'cart_count': cart_count
+        'cart_count': get_cart_count(request)
     }

@@ -12,7 +12,7 @@
                 <div class="col-lg-8">
                     <!-- Cart Items -->
                     {% for item in cart_items %}
-                        <div class="card mb-3" id="cart-item-{{ item.id }}">
+                        <div class="card mb-3" id="cart-item-{{ item.product.id }}">
                             <div class="card-body">
                                 <div class="row align-items-center">
                                     <div class="col-md-2">
@@ -38,12 +38,12 @@
                                         <p class="text-success fw-bold">${{ item.product.price }}</p>
                                     </div>
                                     <div class="col-md-3">
-                                        <form method="post" action="{% url 'products:update_cart' item.id %}" 
+                                        <form method="post" action="{% url 'products:update_cart' item.product.id %}" 
                                               class="d-flex align-items-center">
                                             {% csrf_token %}
-                                            <label for="quantity-{{ item.id }}" class="form-label me-2 mb-0">Qty:</label>
+                                            <label for="quantity-{{ item.product.id }}" class="form-label me-2 mb-0">Qty:</label>
                                             <input type="number" 
-                                                   id="quantity-{{ item.id }}"
+                                                   id="quantity-{{ item.product.id }}"
                                                    name="quantity" 
                                                    value="{{ item.quantity }}" 
                                                    min="1" 
@@ -56,8 +56,8 @@
                                         </form>
                                     </div>
                                     <div class="col-md-2">
-                                        <p class="fw-bold mb-2">${{ item.get_total_price }}</p>
-                                        <form method="post" action="{% url 'products:remove_from_cart' item.id %}">
+                                        <p class="fw-bold mb-2">${{ item.total }}</p>
+                                        <form method="post" action="{% url 'products:remove_from_cart' item.product.id %}">
                                             {% csrf_token %}
                                             <button type="submit" 
                                                     class="btn btn-sm btn-outline-danger"
@@ -121,13 +121,3 @@
 </div>
 {% endblock %}
 
-{% block extra_css %}
-<style>
-    .card {
-        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-    }
-    .card:hover {
-        box-shadow: 0 4px 8px rgba(0,0,0,0.15);
-    }
-</style>
-{% endblock %}

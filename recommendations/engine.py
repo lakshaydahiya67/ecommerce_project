@@ -2,367 +2,232 @@
 Simple Recommendation Engine for E-commerce Application
 
 This module implements a basic content-based filtering recommendation system
-using pandas for data manipulation and simple similarity calculations.
-The engine focuses on category-based recommendations suitable for beginners.
+using pandas for data manipulation and cosine similarity calculations.
+The engine focuses on category and price-based recommendations suitable for beginners.
 """
 
 import pandas as pd
 import numpy as np
-from django.db.models import Count, Q
+import time
 from products.models import Product, UserInteraction
 from typing import List, Dict, Optional
+
+# Try to import Cython-optimized similarity functions
+CYTHON_AVAILABLE = False
+try:
+    from . import similarity as cython_similarity
+    CYTHON_AVAILABLE = True
+    print("✓ Cython optimization module loaded successfully")
+except ImportError:
+    print("⚠ Cython module not available - using Python fallback")
+    pass
 
 
 class SimpleRecommendationEngine:
     """
-    A basic recommendation engine that uses content-based filtering.
+    A basic recommendation engine that uses content-based filtering with cosine similarity.
     
-    This engine recommends products based on:
-    1. Category similarity (primary factor)
-    2. User interaction patterns (secondary factor)
-    3. Product popularity (fallback)
-    
-    The implementation uses pandas for data manipulation and basic
-    mathematical operations for similarity calculations.
+    This engine recommends products based on category and price features using
+    cosine similarity calculations. It's designed for beginners learning ML concepts.
     """
     
     def __init__(self):
         """Initialize the recommendation engine."""
         self.products_df = None
-        self.interactions_df = None
-        self.category_similarity = None
+        self.feature_matrix = None
+        self.similarity_matrix = None
         self.is_loaded = False
     
     def load_data(self):
         """
-        Load product and interaction data from Django models into pandas DataFrames.
-        
-        This method converts Django QuerySets to pandas DataFrames for easier
-        manipulation and analysis. It's called automatically when recommendations
-        are requested if data hasn't been loaded yet.
+        Load product data and create feature matrix for similarity calculations.
         """
         try:
             # Load products data
             products_queryset = Product.objects.all().values(
-                'id', 'name', 'description', 'price', 'category', 'created_at'
+                'id', 'name', 'price', 'category'
             )
             self.products_df = pd.DataFrame(list(products_queryset))
             
-            # Load user interactions data
-            interactions_queryset = UserInteraction.objects.all().values(
-                'user_id', 'product_id', 'interaction_type', 'timestamp'
-            )
-            self.interactions_df = pd.DataFrame(list(interactions_queryset))
-            
-            # If we have products, calculate category similarity
             if not self.products_df.empty:
-                self._calculate_category_similarity()
+                self._create_feature_matrix()
+                self._calculate_similarity_matrix()
                 self.is_loaded = True
-            
-            print(f"Loaded {len(self.products_df)} products and {len(self.interactions_df)} interactions")
             
         except Exception as e:
             print(f"Error loading data: {e}")
-            # Initialize empty DataFrames as fallback
             self.products_df = pd.DataFrame()
-            self.interactions_df = pd.DataFrame()
             self.is_loaded = False
     
-    def _calculate_category_similarity(self):
+    def _create_feature_matrix(self):
         """
-        Calculate similarity between products based on categories.
-        
-        This method creates a simple similarity matrix where products
-        in the same category get a similarity score of 1.0, and products
-        in different categories get a score of 0.0.
-        
-        In a more advanced system, this could be enhanced with:
-        - Subcategory relationships
-        - Price range similarity
-        - Brand similarity
-        - Feature-based similarity
+        Create feature matrix with category and price features for cosine similarity.
         """
         if self.products_df.empty:
-            self.category_similarity = pd.DataFrame()
             return
         
-        # Get unique categories
-        categories = self.products_df['category'].unique()
+        # Create category features using one-hot encoding
+        category_features = pd.get_dummies(self.products_df['category'], prefix='category')
         
-        # Create a simple category similarity matrix
-        # Products in the same category have similarity = 1.0
-        # Products in different categories have similarity = 0.0
-        similarity_data = []
+        # Create price range features (normalized)
+        # Convert decimal prices to float for calculations
+        prices = pd.to_numeric(self.products_df['price'], errors='coerce')
+        price_min, price_max = prices.min(), prices.max()
         
-        for _, product1 in self.products_df.iterrows():
-            similarities = []
-            for _, product2 in self.products_df.iterrows():
-                if product1['id'] == product2['id']:
-                    # Same product
-                    similarity = 0.0  # Don't recommend the same product
-                elif product1['category'] == product2['category']:
-                    # Same category
-                    similarity = 1.0
-                else:
-                    # Different category
-                    similarity = 0.0
-                
-                similarities.append(similarity)
-            
-            similarity_data.append(similarities)
+        # Normalize prices to 0-1 range
+        if price_max > price_min:
+            normalized_prices = (prices - price_min) / (price_max - price_min)
+        else:
+            normalized_prices = pd.Series([0.5] * len(prices))
         
-        # Create similarity matrix DataFrame
-        product_ids = self.products_df['id'].tolist()
-        self.category_similarity = pd.DataFrame(
-            similarity_data,
-            index=product_ids,
-            columns=product_ids
-        )
+        # Create price range bins (low, medium, high)
+        price_bins = pd.cut(normalized_prices, bins=3, labels=['low', 'medium', 'high'])
+        price_features = pd.get_dummies(price_bins, prefix='price')
         
-        print(f"Calculated category similarity matrix: {self.category_similarity.shape}")
+        # Combine all features
+        self.feature_matrix = pd.concat([category_features, price_features], axis=1)
+        self.feature_matrix = self.feature_matrix.fillna(0)
     
-    def _get_user_interaction_score(self, user_id: Optional[int], product_id: int) -> float:
+    def _calculate_similarity_matrix(self):
         """
-        Calculate a score based on user interactions with similar products.
-        
-        This method looks at the user's interaction history and gives higher
-        scores to products that are similar to ones the user has interacted
-        with positively (likes, purchases).
-        
-        Args:
-            user_id: ID of the user (None for anonymous users)
-            product_id: ID of the product to score
-            
-        Returns:
-            Float score between 0.0 and 1.0
+        Calculate cosine similarity matrix using the feature matrix.
         """
-        if user_id is None or self.interactions_df.empty:
-            return 0.0
+        if self.feature_matrix is None or self.feature_matrix.empty:
+            return
         
-        # Get user's positive interactions (likes and purchases)
-        user_interactions = self.interactions_df[
-            (self.interactions_df['user_id'] == user_id) &
-            (self.interactions_df['interaction_type'].isin(['like', 'purchase']))
-        ]
-        
-        if user_interactions.empty:
-            return 0.0
-        
-        # Calculate score based on category overlap with user's liked products
-        liked_product_ids = user_interactions['product_id'].tolist()
-        liked_products = self.products_df[self.products_df['id'].isin(liked_product_ids)]
-        
-        if liked_products.empty:
-            return 0.0
-        
-        # Get the category of the product we're scoring
-        product_category = self.products_df[
-            self.products_df['id'] == product_id
-        ]['category'].iloc[0] if not self.products_df[
-            self.products_df['id'] == product_id
-        ].empty else None
-        
-        if product_category is None:
-            return 0.0
-        
-        # Count how many liked products are in the same category
-        same_category_count = len(liked_products[liked_products['category'] == product_category])
-        total_liked = len(liked_products)
-        
-        # Return the ratio as a score
-        return same_category_count / total_liked if total_liked > 0 else 0.0
+        # Use Cython optimization if available, otherwise use numpy
+        if CYTHON_AVAILABLE:
+            try:
+                self.similarity_matrix = cython_similarity.calculate_cosine_similarity(
+                    self.feature_matrix.values.astype(np.float64)
+                )
+            except:
+                self.similarity_matrix = self._calculate_cosine_similarity_python()
+        else:
+            self.similarity_matrix = self._calculate_cosine_similarity_python()
     
-    def _get_collaborative_filtering_score(self, user_id: Optional[int], product_id: int) -> float:
+    def _calculate_cosine_similarity_python(self):
         """
-        Calculate collaborative filtering score: "users who liked X also liked Y"
-        
-        This method finds users with similar preferences and recommends products
-        they liked. It implements a basic collaborative filtering approach.
-        
-        Args:
-            user_id: ID of the user (None for anonymous users)
-            product_id: ID of the product to score
-            
-        Returns:
-            Float score between 0.0 and 1.0
+        Calculate cosine similarity using pure Python/numpy.
         """
-        if user_id is None or self.interactions_df.empty:
-            return 0.0
+        features = self.feature_matrix.values
         
-        # Get current user's liked products
-        user_likes = self.interactions_df[
-            (self.interactions_df['user_id'] == user_id) &
-            (self.interactions_df['interaction_type'] == 'like')
-        ]['product_id'].tolist()
+        # Calculate dot product
+        dot_product = np.dot(features, features.T)
         
-        if not user_likes:
-            return 0.0
+        # Calculate norms
+        norms = np.linalg.norm(features, axis=1)
         
-        # Find other users who liked the same products
-        similar_users = self.interactions_df[
-            (self.interactions_df['product_id'].isin(user_likes)) &
-            (self.interactions_df['interaction_type'] == 'like') &
-            (self.interactions_df['user_id'] != user_id)
-        ]['user_id'].unique()
+        # Calculate cosine similarity
+        similarity_matrix = dot_product / (norms[:, np.newaxis] * norms[np.newaxis, :])
         
-        if len(similar_users) == 0:
-            return 0.0
+        # Set diagonal to 0 (don't recommend same product)
+        np.fill_diagonal(similarity_matrix, 0)
         
-        # Count how many similar users liked the target product
-        similar_user_likes = self.interactions_df[
-            (self.interactions_df['user_id'].isin(similar_users)) &
-            (self.interactions_df['product_id'] == product_id) &
-            (self.interactions_df['interaction_type'] == 'like')
-        ]
-        
-        # Calculate score based on the ratio of similar users who liked this product
-        likes_count = len(similar_user_likes)
-        total_similar_users = len(similar_users)
-        
-        return likes_count / total_similar_users if total_similar_users > 0 else 0.0
+        return similarity_matrix
     
-    def _get_popularity_score(self, product_id: int) -> float:
-        """
-        Calculate popularity score based on user interactions.
-        
-        Products with more views, likes, and purchases get higher scores.
-        This is used as a fallback when category-based recommendations
-        are not sufficient.
-        
-        Args:
-            product_id: ID of the product to score
-            
-        Returns:
-            Float score representing popularity (normalized between 0.0 and 1.0)
-        """
-        if self.interactions_df.empty:
-            return 0.0
-        
-        # Count interactions for this product
-        product_interactions = self.interactions_df[
-            self.interactions_df['product_id'] == product_id
-        ]
-        
-        if product_interactions.empty:
-            return 0.0
-        
-        # Weight different interaction types
-        interaction_weights = {
-            'view': 1.0,
-            'like': 2.0,
-            'purchase': 3.0,
-            'dislike': -1.0
-        }
-        
-        # Calculate weighted score
-        total_score = 0.0
-        for _, interaction in product_interactions.iterrows():
-            weight = interaction_weights.get(interaction['interaction_type'], 0.0)
-            total_score += weight
-        
-        # Normalize by the maximum possible score in the dataset
-        if not self.interactions_df.empty:
-            max_interactions = self.interactions_df.groupby('product_id').size().max()
-            max_possible_score = max_interactions * max(interaction_weights.values())
-            return min(total_score / max_possible_score, 1.0) if max_possible_score > 0 else 0.0
-        
-        return 0.0
+
     
-    def get_recommendations(self, product_id: int, user_id: Optional[int] = None, 
-                          num_recommendations: int = 5) -> List[Dict]:
+    def get_recommendations(self, product_id: int, session_key: Optional[str] = None, 
+                          num_recommendations: int = 4) -> List[Dict]:
         """
-        Get product recommendations based on the given product.
-        
-        This method combines category similarity, user interaction patterns,
-        and popularity to generate recommendations. It's the main interface
-        for getting recommendations from the engine.
+        Get product recommendations using cosine similarity based on category and price features.
         
         Args:
             product_id: ID of the product to base recommendations on
-            user_id: ID of the user requesting recommendations (optional)
+            session_key: Session key for user interactions (optional)
             num_recommendations: Number of recommendations to return
             
         Returns:
-            List of dictionaries containing recommended products with scores
+            List of dictionaries containing recommended products with similarity scores
         """
         # Load data if not already loaded
         if not self.is_loaded:
             self.load_data()
         
         # Return empty list if no data available
-        if self.products_df.empty:
+        if self.products_df.empty or self.similarity_matrix is None:
             return []
         
-        # Check if the product exists
-        if product_id not in self.products_df['id'].values:
+        # Find the product index
+        try:
+            product_index = self.products_df[self.products_df['id'] == product_id].index[0]
+        except IndexError:
             return self._get_fallback_recommendations(num_recommendations)
         
+        # Get similarity scores for this product
+        similarities = self.similarity_matrix[product_index]
+        
+        # Get top similar products (excluding the original product)
+        similar_indices = np.argsort(similarities)[::-1]
+        
         recommendations = []
-        
-        # Get category-based similarities
-        if not self.category_similarity.empty and product_id in self.category_similarity.index:
-            similarities = self.category_similarity.loc[product_id]
+        for idx in similar_indices:
+            if len(recommendations) >= num_recommendations:
+                break
+                
+            similarity_score = similarities[idx]
+            if similarity_score <= 0:  # Skip products with no similarity
+                continue
+                
+            product_info = self.products_df.iloc[idx]
             
-            # Sort by similarity score (descending)
-            similar_products = similarities.sort_values(ascending=False)
+            # Apply user feedback if available
+            final_score = similarity_score
+            if session_key:
+                final_score = self._apply_user_feedback(session_key, product_info['id'], similarity_score)
             
-            # Get top similar products (excluding the original product)
-            for similar_product_id, similarity_score in similar_products.items():
-                if similar_product_id == product_id or similarity_score == 0.0:
-                    continue
-                
-                # Get product details
-                product_info = self.products_df[
-                    self.products_df['id'] == similar_product_id
-                ].iloc[0]
-                
-                # Calculate additional scores
-                user_score = self._get_user_interaction_score(user_id, similar_product_id)
-                collaborative_score = self._get_collaborative_filtering_score(user_id, similar_product_id)
-                popularity_score = self._get_popularity_score(similar_product_id)
-                
-                # Combine scores (category similarity is primary factor)
-                final_score = (
-                    similarity_score * 0.4 +      # Category similarity (40%)
-                    user_score * 0.2 +            # User preference (20%)
-                    collaborative_score * 0.3 +   # Collaborative filtering (30%)
-                    popularity_score * 0.1        # Popularity (10%)
-                )
-                
-                recommendations.append({
-                    'product_id': int(similar_product_id),
-                    'name': product_info['name'],
-                    'price': float(product_info['price']),
-                    'category': product_info['category'],
-                    'similarity_score': float(similarity_score),
-                    'user_score': float(user_score),
-                    'collaborative_score': float(collaborative_score),
-                    'popularity_score': float(popularity_score),
-                    'final_score': float(final_score),
-                    'reason': f'Same category: {product_info["category"]}'
-                })
-                
-                if len(recommendations) >= num_recommendations:
-                    break
+            recommendations.append({
+                'product_id': int(product_info['id']),
+                'name': product_info['name'],
+                'price': float(product_info['price']),
+                'category': product_info['category'],
+                'similarity_score': float(similarity_score),
+                'final_score': float(final_score)
+            })
         
-        # If we don't have enough recommendations, add popular products
+        # If we don't have enough recommendations, add fallback products
         if len(recommendations) < num_recommendations:
             fallback_recs = self._get_fallback_recommendations(
                 num_recommendations - len(recommendations)
             )
             recommendations.extend(fallback_recs)
         
-        # Sort by final score and return top N
-        recommendations.sort(key=lambda x: x['final_score'], reverse=True)
         return recommendations[:num_recommendations]
+    
+    def _apply_user_feedback(self, session_key: str, product_id: int, base_score: float) -> float:
+        """
+        Apply user feedback to adjust recommendation scores.
+        
+        Args:
+            session_key: User's session key
+            product_id: ID of the product
+            base_score: Base similarity score
+            
+        Returns:
+            Adjusted score based on user feedback
+        """
+        try:
+            # Get user interactions for this session and product
+            interactions = UserInteraction.objects.filter(
+                session_key=session_key,
+                product_id=product_id
+            )
+            
+            # Apply simple feedback adjustments
+            for interaction in interactions:
+                if interaction.interaction_type == 'like':
+                    base_score *= 1.2  # Boost liked products
+                elif interaction.interaction_type == 'dislike':
+                    base_score *= 0.5  # Reduce disliked products
+            
+            return base_score
+        except:
+            return base_score
     
     def _get_fallback_recommendations(self, num_recommendations: int) -> List[Dict]:
         """
-        Get fallback recommendations when category-based recommendations fail.
-        
-        This method returns popular products or recently added products
-        as a fallback when the main recommendation algorithm cannot
-        provide sufficient results.
+        Get fallback recommendations when similarity-based recommendations fail.
         
         Args:
             num_recommendations: Number of recommendations to return
@@ -375,64 +240,114 @@ class SimpleRecommendationEngine:
         
         recommendations = []
         
-        # Get products sorted by creation date (newest first) as a simple fallback
-        recent_products = self.products_df.sort_values('created_at', ascending=False)
+        # Get random products as simple fallback
+        sample_products = self.products_df.sample(n=min(num_recommendations, len(self.products_df)))
         
-        for _, product in recent_products.iterrows():
-            popularity_score = self._get_popularity_score(product['id'])
-            
+        for _, product in sample_products.iterrows():
             recommendations.append({
                 'product_id': int(product['id']),
                 'name': product['name'],
                 'price': float(product['price']),
                 'category': product['category'],
                 'similarity_score': 0.0,
-                'user_score': 0.0,
-                'collaborative_score': 0.0,
-                'popularity_score': float(popularity_score),
-                'final_score': float(popularity_score),
-                'reason': 'Popular product'
+                'final_score': 0.1  # Low fallback score
             })
-            
-            if len(recommendations) >= num_recommendations:
-                break
         
         return recommendations
     
-    def refresh_data(self):
+    def update_with_feedback(self, session_key: str, product_id: int, feedback: str):
         """
-        Refresh the loaded data from the database.
+        Update user feedback for a product.
         
-        This method should be called when products or interactions
-        are added/modified to ensure recommendations stay current.
+        Args:
+            session_key: User's session key
+            product_id: ID of the product
+            feedback: Type of feedback ('like' or 'dislike')
         """
-        self.is_loaded = False
-        self.load_data()
+        try:
+            UserInteraction.objects.create(
+                session_key=session_key,
+                product_id=product_id,
+                interaction_type=feedback
+            )
+        except Exception as e:
+            print(f"Error saving feedback: {e}")
     
     def get_stats(self) -> Dict:
         """
-        Get statistics about the recommendation engine's data.
+        Get basic statistics about the recommendation engine.
         
         Returns:
-            Dictionary containing statistics about loaded data
+            Dictionary containing basic statistics
         """
         if not self.is_loaded:
             self.load_data()
         
-        stats = {
+        return {
             'total_products': len(self.products_df) if not self.products_df.empty else 0,
-            'total_interactions': len(self.interactions_df) if not self.interactions_df.empty else 0,
             'unique_categories': len(self.products_df['category'].unique()) if not self.products_df.empty else 0,
-            'is_loaded': self.is_loaded
+            'is_loaded': self.is_loaded,
+            'cython_available': CYTHON_AVAILABLE
+        }
+    
+    def compare_performance(self, num_runs: int = 3) -> Dict:
+        """
+        Compare performance between Python and Cython implementations.
+        
+        Args:
+            num_runs: Number of runs for timing comparison
+            
+        Returns:
+            Dictionary containing performance comparison results
+        """
+        if not self.is_loaded or self.feature_matrix is None or self.feature_matrix.empty:
+            return {'error': 'No data loaded for performance comparison'}
+        
+        features = self.feature_matrix.values.astype(np.float64)
+        results = {
+            'cython_available': CYTHON_AVAILABLE,
+            'matrix_size': features.shape,
+            'num_runs': num_runs
         }
         
-        if not self.products_df.empty:
-            stats['categories'] = self.products_df['category'].value_counts().to_dict()
+        # Time Python implementation
+        python_times = []
+        for _ in range(num_runs):
+            start_time = time.time()
+            self._calculate_cosine_similarity_python()
+            python_times.append(time.time() - start_time)
         
-        if not self.interactions_df.empty:
-            stats['interaction_types'] = self.interactions_df['interaction_type'].value_counts().to_dict()
+        results['python_avg_time'] = sum(python_times) / len(python_times)
+        results['python_min_time'] = min(python_times)
         
-        return stats
+        # Time Cython implementation if available
+        if CYTHON_AVAILABLE:
+            cython_times = []
+            for _ in range(num_runs):
+                start_time = time.time()
+                try:
+                    cython_similarity.calculate_cosine_similarity(features)
+                    cython_times.append(time.time() - start_time)
+                except Exception as e:
+                    results['cython_error'] = str(e)
+                    break
+            
+            if cython_times:
+                results['cython_avg_time'] = sum(cython_times) / len(cython_times)
+                results['cython_min_time'] = min(cython_times)
+                results['speedup'] = results['python_avg_time'] / results['cython_avg_time']
+        else:
+            results['cython_avg_time'] = None
+            results['speedup'] = None
+        
+        return results
+    
+    def refresh_data(self):
+        """
+        Refresh the loaded data from the database.
+        """
+        self.is_loaded = False
+        self.load_data()
 
 
 # Global instance of the recommendation engine

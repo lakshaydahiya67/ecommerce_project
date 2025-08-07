@@ -12,21 +12,8 @@
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     
     <!-- Custom CSS -->
-    <style>
-        .product-card {
-            transition: transform 0.2s;
-        }
-        .product-card:hover {
-            transform: translateY(-5px);
-        }
-        .product-image {
-            height: 200px;
-            object-fit: cover;
-        }
-        .category-badge {
-            font-size: 0.8rem;
-        }
-    </style>
+    {% load static %}
+    <link href="{% static 'css/style.css' %}" rel="stylesheet">
     
     {% block extra_css %}{% endblock %}
 </head>
@@ -54,16 +41,7 @@
                         <li class="nav-item">
                             <a class="nav-link" href="{% url 'products:cart' %}">
                                 <i class="fas fa-shopping-cart"></i> Cart
-                                <span class="badge bg-primary" id="cart-count">{{ cart_count }}</span>
                             </a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link" href="{% url 'products:order_history' %}">
-                                <i class="fas fa-receipt"></i> Orders
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <span class="navbar-text">Welcome, {{ user.username }}!</span>
                         </li>
                         <li class="nav-item">
                             <a class="nav-link" href="/admin/logout/">Logout</a>

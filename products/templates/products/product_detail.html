@@ -90,24 +90,18 @@
                                 </div>
                             </form>
                             
-                            <!-- Like/Dislike Buttons -->
+                            <!-- Simplified Like/Dislike Buttons -->
                             <div class="row mb-3">
                                 <div class="col-6">
-                                    <button id="like-btn" class="btn btn-outline-success w-100" 
-                                            data-product-id="{{ product.id }}" 
-                                            data-interaction="like">
+                                    <button id="like-btn" class="btn btn-outline-success w-100">
                                         <i class="fas fa-thumbs-up"></i> 
                                         <span id="like-text">Like</span>
-                                        <span id="like-count" class="badge bg-success ms-1">0</span>
                                     </button>
                                 </div>
                                 <div class="col-6">
-                                    <button id="dislike-btn" class="btn btn-outline-danger w-100" 
-                                            data-product-id="{{ product.id }}" 
-                                            data-interaction="dislike">
+                                    <button id="dislike-btn" class="btn btn-outline-danger w-100">
                                         <i class="fas fa-thumbs-down"></i> 
                                         <span id="dislike-text">Dislike</span>
-                                        <span id="dislike-count" class="badge bg-danger ms-1">0</span>
                                     </button>
                                 </div>
                             </div>
@@ -198,44 +192,39 @@
             </div>
         {% endif %}
 
-        <!-- AI Recommendations -->
+        <!-- Simplified Recommendations -->
         <div class="card mt-3">
             <div class="card-header d-flex justify-content-between align-items-center">
                 <h5 class="mb-0">
-                    <i class="fas fa-robot"></i> AI Recommendations
+                    <i class="fas fa-robot"></i> Recommendations
                 </h5>
-                <button id="refresh-recommendations" class="btn btn-sm btn-outline-primary" title="Refresh recommendations">
+                <button id="refresh-recommendations" class="btn btn-sm btn-outline-primary">
                     <i class="fas fa-sync-alt"></i>
                 </button>
             </div>
             <div class="card-body">
-                <!-- Loading indicator -->
+                <!-- Simple loading indicator -->
                 <div id="recommendations-loading" class="text-center py-3">
-                    <div class="spinner-border spinner-border-sm text-primary" role="status">
-                        <span class="visually-hidden">Loading recommendations...</span>
-                    </div>
-                    <p class="mt-2 mb-0 text-muted">Finding personalized recommendations...</p>
+                    <div class="spinner-border spinner-border-sm" role="status"></div>
+                    <p class="mt-2 mb-0 text-muted">Loading...</p>
                 </div>
                 
                 <!-- Recommendations container -->
                 <div id="recommendations-container" style="display: none;">
-                    <!-- Recommendations will be loaded here via AJAX -->
+                    <!-- Recommendations loaded via AJAX -->
                 </div>
                 
-                <!-- Error message -->
+                <!-- Simple error message -->
                 <div id="recommendations-error" class="alert alert-warning" style="display: none;">
-                    <i class="fas fa-exclamation-triangle"></i>
-                    Unable to load recommendations at this time.
+                    Unable to load recommendations.
                     <button id="retry-recommendations" class="btn btn-sm btn-outline-warning ms-2">
-                        Try Again
+                        Retry
                     </button>
                 </div>
                 
-                <!-- No recommendations message -->
+                <!-- Simple no recommendations message -->
                 <div id="no-recommendations" class="text-center py-3" style="display: none;">
-                    <i class="fas fa-search text-muted mb-2" style="font-size: 2rem;"></i>
-                    <p class="text-muted mb-0">No recommendations available yet.</p>
-                    <small class="text-muted">Try browsing more products to get personalized suggestions!</small>
+                    <p class="text-muted mb-0">No recommendations available.</p>
                 </div>
             </div>
         </div>
@@ -282,109 +271,53 @@
 {% block extra_js %}
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    console.log('Product detail page loaded for: {{ product.name }}');
+    // Simplified JavaScript for beginner-level implementation
+    const productId = {{ product.id }};
     
-    // Initialize like/dislike button states and counts
-    initializeInteractionButtons();
-    
-    // Initialize recommendations
-    loadRecommendations();
-    
-    // Add event listeners for like/dislike buttons
+    // Initialize like/dislike buttons
     const likeBtn = document.getElementById('like-btn');
     const dislikeBtn = document.getElementById('dislike-btn');
     
+    // Add event listeners for like/dislike buttons
     if (likeBtn) {
-        likeBtn.addEventListener('click', function() {
-            handleInteraction('like');
-        });
+        likeBtn.addEventListener('click', () => handleInteraction('like'));
     }
-    
     if (dislikeBtn) {
-        dislikeBtn.addEventListener('click', function() {
-            handleInteraction('dislike');
-        });
+        dislikeBtn.addEventListener('click', () => handleInteraction('dislike'));
     }
     
-    // Add event listeners for recommendation controls
-    const refreshBtn = document.getElementById('refresh-recommendations');
-    const retryBtn = document.getElementById('retry-recommendations');
-    
-    if (refreshBtn) {
-        refreshBtn.addEventListener('click', function() {
-            loadRecommendations(true);
-        });
-    }
-    
-    if (retryBtn) {
-        retryBtn.addEventListener('click', function() {
-            loadRecommendations();
-        });
-    }
-    
-    function initializeInteractionButtons() {
-        // Get current interaction counts and user state
-        updateInteractionCounts();
-    }
-    
-    function updateInteractionCounts() {
-        // Get current like/dislike counts for this product
-        const productId = {{ product.id }};
-        
-        // For now, initialize with 0 - this will be updated when user interacts
-        document.getElementById('like-count').textContent = '0';
-        document.getElementById('dislike-count').textContent = '0';
-        
-        // Check if user has existing interactions (from template context)
-        {% if user.is_authenticated and user_interactions %}
-            {% for interaction in user_interactions %}
-                {% if interaction.interaction_type == 'like' %}
-                    updateButtonState('like', true);
-                {% elif interaction.interaction_type == 'dislike' %}
-                    updateButtonState('dislike', true);
-                {% endif %}
-            {% endfor %}
-        {% endif %}
-    }
+    // Load recommendations on page load
+    loadRecommendations();
     
     function handleInteraction(interactionType) {
-        const productId = {{ product.id }};
         const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
         
         // Disable buttons during request
-        document.getElementById('like-btn').disabled = true;
-        document.getElementById('dislike-btn').disabled = true;
+        likeBtn.disabled = true;
+        dislikeBtn.disabled = true;
         
         fetch(`/product/${productId}/interact/`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                'X-CSRFToken': csrfToken,
-                'X-Requested-With': 'XMLHttpRequest'
+                'X-CSRFToken': csrfToken
             },
-            body: JSON.stringify({
-                'interaction_type': interactionType
-            })
+            body: JSON.stringify({'interaction_type': interactionType})
         })
         .then(response => response.json())
         .then(data => {
             if (data.success) {
-                // Update button states and counts
-                updateButtonState('like', data.user_liked);
-                updateButtonState('dislike', data.user_disliked);
+                // Update button states
+                updateButtonState(interactionType, data.is_active);
+                updateButtonState(interactionType === 'like' ? 'dislike' : 'like', false);
                 
-                document.getElementById('like-count').textContent = data.like_count;
-                document.getElementById('dislike-count').textContent = data.dislike_count;
-                
-                // Show success message
+                // Show simple message
                 showMessage(data.message, 'success');
                 
-                // Refresh recommendations after user interaction
-                setTimeout(() => {
-                    loadRecommendations(true);
-                }, 500);
+                // Refresh recommendations
+                setTimeout(() => loadRecommendations(), 500);
             } else {
-                showMessage(data.error || 'An error occurred', 'error');
+                showMessage(data.error, 'error');
             }
         })
         .catch(error => {
@@ -393,8 +326,8 @@ document.addEventListener('DOMContentLoaded', function() {
         })
         .finally(() => {
             // Re-enable buttons
-            document.getElementById('like-btn').disabled = false;
-            document.getElementById('dislike-btn').disabled = false;
+            likeBtn.disabled = false;
+            dislikeBtn.disabled = false;
         });
     }
     
@@ -403,18 +336,15 @@ document.addEventListener('DOMContentLoaded', function() {
         const text = document.getElementById(`${interactionType}-text`);
         
         if (isActive) {
-            btn.classList.remove(`btn-outline-${interactionType === 'like' ? 'success' : 'danger'}`);
-            btn.classList.add(`btn-${interactionType === 'like' ? 'success' : 'danger'}`);
+            btn.className = `btn btn-${interactionType === 'like' ? 'success' : 'danger'} w-100`;
             text.textContent = interactionType === 'like' ? 'Liked' : 'Disliked';
         } else {
-            btn.classList.remove(`btn-${interactionType === 'like' ? 'success' : 'danger'}`);
-            btn.classList.add(`btn-outline-${interactionType === 'like' ? 'success' : 'danger'}`);
+            btn.className = `btn btn-outline-${interactionType === 'like' ? 'success' : 'danger'} w-100`;
             text.textContent = interactionType === 'like' ? 'Like' : 'Dislike';
         }
     }
     
     function showMessage(message, type) {
-        // Create a simple alert message
         const alertClass = type === 'success' ? 'alert-success' : 'alert-danger';
         const alertHtml = `
             <div class="alert ${alertClass} alert-dismissible fade show mt-3" role="alert">
@@ -423,85 +353,51 @@ document.addEventListener('DOMContentLoaded', function() {
             </div>
         `;
         
-        // Insert the alert at the top of the product details
         const productDetails = document.querySelector('.col-lg-8 .card-body');
         productDetails.insertAdjacentHTML('afterbegin', alertHtml);
         
         // Auto-dismiss after 3 seconds
         setTimeout(() => {
             const alert = productDetails.querySelector('.alert');
-            if (alert) {
-                alert.remove();
-            }
+            if (alert) alert.remove();
         }, 3000);
     }
     
-    function loadRecommendations(isRefresh = false) {
-        const productId = {{ product.id }};
-        const loadingEl = document.getElementById('recommendations-loading');
-        const containerEl = document.getElementById('recommendations-container');
-        const errorEl = document.getElementById('recommendations-error');
-        const noRecsEl = document.getElementById('no-recommendations');
-        const refreshBtn = document.getElementById('refresh-recommendations');
+    function loadRecommendations() {
+        const container = document.getElementById('recommendations-container');
+        const loading = document.getElementById('recommendations-loading');
+        const error = document.getElementById('recommendations-error');
+        const noRecs = document.getElementById('no-recommendations');
         
-        // Show loading state
-        loadingEl.style.display = 'block';
-        containerEl.style.display = 'none';
-        errorEl.style.display = 'none';
-        noRecsEl.style.display = 'none';
+        // Show loading
+        loading.style.display = 'block';
+        container.style.display = 'none';
+        error.style.display = 'none';
+        noRecs.style.display = 'none';
         
-        // Disable refresh button during loading
-        if (refreshBtn) {
-            refreshBtn.disabled = true;
-            const icon = refreshBtn.querySelector('i');
-            if (icon) {
-                icon.classList.add('fa-spin');
-            }
-        }
-        
-        // Add a small delay for better UX if it's a refresh
-        const delay = isRefresh ? 300 : 0;
-        
-        setTimeout(() => {
-            fetch(`/api/recommendations/${productId}/?num_recommendations=4`)
-                .then(response => {
-                    if (!response.ok) {
-                        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-                    }
-                    return response.json();
-                })
-                .then(data => {
-                    if (data.success && data.recommendations && data.recommendations.length > 0) {
-                        displayRecommendations(data.recommendations);
-                        containerEl.style.display = 'block';
-                    } else {
-                        noRecsEl.style.display = 'block';
-                    }
-                })
-                .catch(error => {
-                    console.error('Error loading recommendations:', error);
-                    errorEl.style.display = 'block';
-                })
-                .finally(() => {
-                    loadingEl.style.display = 'none';
-                    
-                    // Re-enable refresh button
-                    if (refreshBtn) {
-                        refreshBtn.disabled = false;
-                        const icon = refreshBtn.querySelector('i');
-                        if (icon) {
-                            icon.classList.remove('fa-spin');
-                        }
-                    }
-                });
-        }, delay);
+        fetch(`/api/recommendations/${productId}/?num_recommendations=4`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.recommendations && data.recommendations.length > 0) {
+                    displayRecommendations(data.recommendations);
+                    container.style.display = 'block';
+                } else {
+                    noRecs.style.display = 'block';
+                }
+            })
+            .catch(error => {
+                console.error('Error loading recommendations:', error);
+                document.getElementById('recommendations-error').style.display = 'block';
+            })
+            .finally(() => {
+                loading.style.display = 'none';
+            });
     }
     
     function displayRecommendations(recommendations) {
         const container = document.getElementById('recommendations-container');
         
         let html = '';
-        
         recommendations.forEach((rec, index) => {
             const imageHtml = rec.image_url 
                 ? `<img src="${rec.image_url}" class="rounded" alt="${rec.name}" style="width: 60px; height: 60px; object-fit: cover;">`
@@ -509,45 +405,28 @@ document.addEventListener('DOMContentLoaded', function() {
                      <small class="text-muted">No img</small>
                    </div>`;
             
-            // Create score badge based on final score
-            const scoreColor = rec.final_score > 0.7 ? 'success' : rec.final_score > 0.4 ? 'warning' : 'secondary';
-            const scorePercentage = Math.round(rec.final_score * 100);
-            
             html += `
-                <div class="d-flex mb-3 recommendation-item ${index < recommendations.length - 1 ? 'border-bottom pb-3' : ''}" 
-                     data-product-id="${rec.product_id}">
-                    <!-- Recommendation Image -->
-                    <div class="flex-shrink-0 me-3">
-                        ${imageHtml}
-                    </div>
-                    
-                    <!-- Recommendation Info -->
+                <div class="d-flex mb-3 ${index < recommendations.length - 1 ? 'border-bottom pb-3' : ''}">
+                    <div class="flex-shrink-0 me-3">${imageHtml}</div>
                     <div class="flex-grow-1">
-                        <div class="d-flex justify-content-between align-items-start mb-1">
-                            <h6 class="mb-1">
-                                <a href="${rec.detail_url}" class="text-decoration-none recommendation-link">
-                                    ${rec.name}
-                                </a>
-                            </h6>
-                            <span class="badge bg-${scoreColor} ms-2" title="Recommendation Score">
-                                ${scorePercentage}%
-                            </span>
-                        </div>
-                        
+                        <h6 class="mb-1">
+                            <a href="${rec.detail_url}" class="text-decoration-none">
+                                ${rec.name}
+                            </a>
+                        </h6>
                         <p class="text-muted small mb-1">
                             <span class="badge bg-light text-dark me-1">${rec.category}</span>
                             ${rec.reason}
                         </p>
-                        
                         <div class="d-flex justify-content-between align-items-center">
                             <strong class="text-primary">$${rec.price}</strong>
-                            <div class="btn-group btn-group-sm" role="group">
-                                <button type="button" class="btn btn-outline-success btn-sm like-rec-btn" 
-                                        data-product-id="${rec.product_id}" title="Like this recommendation">
+                            <div>
+                                <button type="button" class="btn btn-outline-success btn-sm me-1" 
+                                        onclick="handleRecommendationFeedback(${rec.product_id}, 'like', this)">
                                     <i class="fas fa-thumbs-up"></i>
                                 </button>
-                                <button type="button" class="btn btn-outline-danger btn-sm dislike-rec-btn" 
-                                        data-product-id="${rec.product_id}" title="Dislike this recommendation">
+                                <button type="button" class="btn btn-outline-danger btn-sm" 
+                                        onclick="handleRecommendationFeedback(${rec.product_id}, 'dislike', this)">
                                     <i class="fas fa-thumbs-down"></i>
                                 </button>
                             </div>
@@ -558,111 +437,54 @@ document.addEventListener('DOMContentLoaded', function() {
         });
         
         container.innerHTML = html;
-        
-        // Add event listeners for recommendation feedback buttons
-        addRecommendationFeedbackListeners();
     }
     
-    function addRecommendationFeedbackListeners() {
-        const likeButtons = document.querySelectorAll('.like-rec-btn');
-        const dislikeButtons = document.querySelectorAll('.dislike-rec-btn');
-        
-        likeButtons.forEach(btn => {
-            btn.addEventListener('click', function() {
-                const productId = this.getAttribute('data-product-id');
-                handleRecommendationFeedback(productId, 'like', this);
-            });
-        });
-        
-        dislikeButtons.forEach(btn => {
-            btn.addEventListener('click', function() {
-                const productId = this.getAttribute('data-product-id');
-                handleRecommendationFeedback(productId, 'dislike', this);
-            });
-        });
-    }
-    
-    function handleRecommendationFeedback(productId, interactionType, buttonEl) {
+    // Simple recommendation feedback function
+    window.handleRecommendationFeedback = function(productId, interactionType, buttonEl) {
         const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
         
-        // Disable button during request
         buttonEl.disabled = true;
-        const icon = buttonEl.querySelector('i');
-        const originalClass = icon.className;
-        icon.className = 'fas fa-spinner fa-spin';
         
         fetch(`/product/${productId}/interact/`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                'X-CSRFToken': csrfToken,
-                'X-Requested-With': 'XMLHttpRequest'
+                'X-CSRFToken': csrfToken
             },
-            body: JSON.stringify({
-                'interaction_type': interactionType
-            })
+            body: JSON.stringify({'interaction_type': interactionType})
         })
         .then(response => response.json())
         .then(data => {
             if (data.success) {
-                // Update button state
-                const isActive = data[`user_${interactionType}d`];
-                if (isActive) {
-                    buttonEl.classList.remove('btn-outline-success', 'btn-outline-danger');
-                    buttonEl.classList.add(interactionType === 'like' ? 'btn-success' : 'btn-danger');
+                // Update button appearance
+                if (data.is_active) {
+                    buttonEl.className = `btn btn-${interactionType === 'like' ? 'success' : 'danger'} btn-sm me-1`;
                 } else {
-                    buttonEl.classList.remove('btn-success', 'btn-danger');
-                    buttonEl.classList.add(interactionType === 'like' ? 'btn-outline-success' : 'btn-outline-danger');
+                    buttonEl.className = `btn btn-outline-${interactionType === 'like' ? 'success' : 'danger'} btn-sm me-1`;
                 }
                 
-                // Show small success indicator
-                showRecommendationFeedback(buttonEl, 'Thanks for your feedback!', 'success');
-                
-                // Update opposite button state
+                // Reset opposite button
                 const oppositeType = interactionType === 'like' ? 'dislike' : 'like';
-                const oppositeBtn = buttonEl.parentElement.querySelector(`.${oppositeType}-rec-btn`);
+                const oppositeBtn = buttonEl.parentElement.querySelector(`.btn-${oppositeType}, .btn-outline-${oppositeType}`);
                 if (oppositeBtn) {
-                    const oppositeActive = data[`user_${oppositeType}d`];
-                    if (oppositeActive) {
-                        oppositeBtn.classList.remove('btn-outline-success', 'btn-outline-danger');
-                        oppositeBtn.classList.add(oppositeType === 'like' ? 'btn-success' : 'btn-danger');
-                    } else {
-                        oppositeBtn.classList.remove('btn-success', 'btn-danger');
-                        oppositeBtn.classList.add(oppositeType === 'like' ? 'btn-outline-success' : 'btn-outline-danger');
-                    }
+                    oppositeBtn.className = `btn btn-outline-${oppositeType === 'like' ? 'success' : 'danger'} btn-sm`;
                 }
-            } else {
-                showRecommendationFeedback(buttonEl, 'Error occurred', 'error');
             }
-        })
-        .catch(error => {
-            console.error('Error:', error);
-            showRecommendationFeedback(buttonEl, 'Network error', 'error');
         })
         .finally(() => {
-            // Re-enable button and restore icon
             buttonEl.disabled = false;
-            icon.className = originalClass;
         });
+    };
+    
+    // Add refresh button functionality
+    const refreshBtn = document.getElementById('refresh-recommendations');
+    if (refreshBtn) {
+        refreshBtn.addEventListener('click', loadRecommendations);
     }
     
-    function showRecommendationFeedback(buttonEl, message, type) {
-        // Create a small tooltip-like feedback
-        const feedback = document.createElement('div');
-        feedback.className = `position-absolute bg-${type === 'success' ? 'success' : 'danger'} text-white px-2 py-1 rounded small`;
-        feedback.style.cssText = 'top: -35px; left: 50%; transform: translateX(-50%); z-index: 1000; font-size: 0.75rem;';
-        feedback.textContent = message;
-        
-        // Position relative to button
-        buttonEl.style.position = 'relative';
-        buttonEl.appendChild(feedback);
-        
-        // Remove after 2 seconds
-        setTimeout(() => {
-            if (feedback.parentNode) {
-                feedback.parentNode.removeChild(feedback);
-            }
-        }, 2000);
+    const retryBtn = document.getElementById('retry-recommendations');
+    if (retryBtn) {
+        retryBtn.addEventListener('click', loadRecommendations);
     }
 });
 </script>
