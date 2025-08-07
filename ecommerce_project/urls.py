@@ -22,7 +22,7 @@ from django.conf.urls.static import static
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('', include('products.urls')),  # Include products URLs at root
-    path('recommendations/', include('recommendations.urls')),  # Include recommendations URLs
+    path('api/', include('recommendations.urls')),  # Include recommendations URLs at api/
 ]
 
 # Serve media files during development
