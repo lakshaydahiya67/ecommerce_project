@@ -1,11 +1,3 @@
-"""
-Simple Recommendation Engine for E-commerce Application
-
-This module implements a basic content-based filtering recommendation system
-using pandas for data manipulation and cosine similarity calculations.
-The engine focuses on category and price-based recommendations suitable for beginners.
-"""
-
 import pandas as pd
 import numpy as np
 import time
@@ -25,10 +17,7 @@ except ImportError:
 
 class SimpleRecommendationEngine:
     """
-    A basic recommendation engine that uses content-based filtering with cosine similarity.
-    
-    This engine recommends products based on category and price features using
-    cosine similarity calculations. It's designed for beginners learning ML concepts.
+    Content-based product recommendation engine using cosine similarity.
     """
     
     def __init__(self):
@@ -40,8 +29,7 @@ class SimpleRecommendationEngine:
 
     def _format_recommendation(self, product_row, similarity_score=0.0, final_score=0.0, reason=""):
         """
-        Helper to format a product row as a recommendation dict (DRY principle).
-        Handles image URL logic robustly for both Series and dict rows.
+        Format a product row as a recommendation dict.
         """
         product_id = int(product_row['id'])
         # Try to get image URL if available
@@ -302,7 +290,6 @@ class SimpleRecommendationEngine:
     def _get_recommendation_reason(self, session_key: Optional[str], product_info: pd.Series, score: float) -> str:
         """
         Generate a personalized recommendation reason based on user history.
-        DRY: Centralizes all reason logic, including fallback.
         """
         base_category = product_info["category"].lower()
         try:
@@ -339,7 +326,6 @@ class SimpleRecommendationEngine:
                                                    seen_products: set) -> List[Dict]:
         """
         Get personalized fallback recommendations based on user preferences.
-        DRY: Uses a single helper for sampling and formatting.
         """
         def sample_and_format(df, n, reason_func):
             sampled = df.sample(n=min(n, len(df))) if not df.empty else pd.DataFrame()
@@ -386,7 +372,6 @@ class SimpleRecommendationEngine:
             return []
         
         recommendations = []
-        # Get random products as simple fallback
         sample_products = self.products_df.sample(n=min(num_recommendations, len(self.products_df)))
         for _, product in sample_products.iterrows():
             recommendations.append(

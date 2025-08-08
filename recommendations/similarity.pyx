@@ -1,11 +1,3 @@
-"""
-Simple Cython optimization for cosine similarity calculations.
-
-This module provides a basic Cython-optimized implementation of cosine similarity
-calculation for the recommendation engine. It focuses on one main optimization
-to demonstrate the performance benefits of Cython for mathematical operations.
-"""
-
 import numpy as np
 cimport numpy as np
 cimport cython
@@ -19,21 +11,7 @@ ctypedef np.float64_t DTYPE_t
 @cython.boundscheck(False)  # Disable bounds checking for performance
 @cython.wraparound(False)   # Disable negative index wrapping
 def calculate_cosine_similarity(np.ndarray[DTYPE_t, ndim=2] matrix):
-    """
-    Calculate cosine similarity matrix using optimized Cython code.
     
-    This function computes the cosine similarity between all pairs of rows
-    in the input matrix. This is the main optimization target for demonstrating
-    Cython performance benefits.
-    
-    Formula: cosine_similarity(A, B) = (A · B) / (||A|| * ||B||)
-    
-    Args:
-        matrix: 2D NumPy array where each row represents a feature vector
-        
-    Returns:
-        2D NumPy array containing cosine similarities between all pairs
-    """
     cdef int n = matrix.shape[0]  # Number of rows (products)
     cdef int m = matrix.shape[1]  # Number of features
     cdef np.ndarray[DTYPE_t, ndim=2] similarity = np.zeros((n, n), dtype=DTYPE)

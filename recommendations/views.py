@@ -1,9 +1,3 @@
-"""
-Views for the recommendations app.
-
-This module provides simple views for recommendation functionality.
-"""
-
 from django.http import JsonResponse
 from django.views.decorators.http import require_http_methods
 from django.views.decorators.csrf import csrf_exempt
@@ -66,5 +60,3 @@ def engine_stats_api(request):
         }, status=500)
 
 
-# Removed complex feedback endpoints for simplified beginner-level implementation
-# Feedback is now handled through the main ProductInteractionView in products app

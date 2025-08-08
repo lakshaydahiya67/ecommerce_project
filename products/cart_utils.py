@@ -1,7 +1,3 @@
-"""
-Simple session-based cart utility functions.
-Provides basic cart operations: add_to_cart, remove_from_cart, get_cart.
-"""
 from .models import Product
 
 

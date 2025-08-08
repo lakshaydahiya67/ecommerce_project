@@ -9,7 +9,6 @@ from setuptools import setup, Extension
 from Cython.Build import cythonize
 import numpy as np
 
-# Simple extension configuration
 extensions = [
     Extension(
         "similarity",
@@ -18,7 +17,6 @@ extensions = [
     )
 ]
 
-# Basic setup
 setup(
     ext_modules=cythonize(extensions, language_level=3),
     zip_safe=False

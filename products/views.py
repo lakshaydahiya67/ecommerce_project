@@ -259,7 +259,6 @@ class OrderConfirmationView(View):
 class ProductInteractionView(View):
     """
     Handle user interactions with products (like/dislike) via AJAX using session.
-    Simplified version for beginner-level code.
     """
     
     def post(self, request, product_id):
